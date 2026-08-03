@@ -1,0 +1,212 @@
+openapi: 3.0.3
+info:
+  title: MatchNova Core API
+  description: REST API contract for the MatchNova dating platform core gateway.
+  version: 1.0.0
+servers:
+  - url: https://api.matchnova.com/api/v1
+    description: Production API Gateway
+paths:
+  /auth/otp/send:
+    post:
+      summary: Send SMS OTP verification code
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: OBJECT
+              required:
+                - phone
+              properties:
+                phone:
+                  type: string
+                  example: "+15550199"
+      responses:
+        '200':
+          description: OTP successfully sent via SMS
+        '400':
+          description: Invalid phone number format
+
+  /auth/otp/verify:
+    post:
+      summary: Verify OTP code and issue tokens
+      tags:
+        - Authentication
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: OBJECT
+              required:
+                - phone
+                - code
+              properties:
+                phone:
+                  type: string
+                  example: "+15550199"
+                code:
+                  type: string
+                  example: "123456"
+      responses:
+        '200':
+          description: Verification success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Invalid or expired OTP code
+
+  /profiles/me:
+    get:
+      summary: Get current authenticated user profile
+      tags:
+        - Profiles
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Profile retrieved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401':
+          description: Unauthorized
+    put:
+      summary: Update current user profile
+      tags:
+        - Profiles
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdate'
+      responses:
+        '200':
+          description: Profile updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+        '401':
+          description: Unauthorized
+
+  /swipes:
+    post:
+      summary: Submit a swipe action
+      tags:
+        - Swiping
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: OBJECT
+              required:
+                - receiverId
+                - type
+              properties:
+                receiverId:
+                  type: string
+                  format: uuid
+                  example: "7ca64b4c-9f89-49bb-9c24-4f51e06d9a19"
+                type:
+                  type: string
+                  enum: [LIKE, PASS, SUPERLIKE]
+                  example: "LIKE"
+      responses:
+        '201':
+          description: Swipe recorded
+          content:
+            application/json:
+              schema:
+                type: OBJECT
+                properties:
+                  isMatch:
+                    type: boolean
+                    example: true
+                  matchId:
+                    type: string
+                    format: uuid
+                    nullable: true
+                    example: "4d9a8c7b-3e2f-5a6b-8c9d-0e1f2a3b4c5d"
+        '401':
+          description: Unauthorized
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    AuthResponse:
+      type: OBJECT
+      properties:
+        accessToken:
+          type: string
+        user:
+          type: OBJECT
+          properties:
+            id:
+              type: string
+              format: uuid
+            email:
+              type: string
+            verified:
+              type: boolean
+
+    Profile:
+      type: OBJECT
+      properties:
+        id:
+          type: string
+          format: uuid
+        firstName:
+          type: string
+        lastName:
+          type: string
+        birthDate:
+          type: string
+          format: date-time
+        gender:
+          type: string
+        bio:
+          type: string
+        photos:
+          type: array
+          items:
+            type: string
+        interests:
+          type: array
+          items:
+            type: string
+
+    ProfileUpdate:
+      type: OBJECT
+      properties:
+        firstName:
+          type: string
+        lastName:
+          type: string
+        bio:
+          type: string
+        photos:
+          type: array
+          items:
+            type: string
+        interests:
+          type: array
+          items:
+            type: string
